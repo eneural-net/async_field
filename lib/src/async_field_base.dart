@@ -68,7 +68,7 @@ class AsyncField<T> {
 
   Object get idKey => id.key;
 
-  Object get idKeyJson => json.encode(id.key);
+  Object get idKeyAsJson => json.encode(id.key);
 
   T? _value;
 
@@ -310,13 +310,13 @@ class AsyncField<T> {
     if (isSet) {
       return '{ '
           '"value": $valueAsJson , '
-          '"id": $idKeyJson , '
+          '"id": $idKeyAsJson , '
           '"valueTime": $_valueTime , '
           '"storage": $storageInfo'
           ' }';
     } else {
       return '{ '
-          '"id": $idKeyJson , '
+          '"id": $idKeyAsJson , '
           '"storage": $storageInfo'
           ' }';
     }
@@ -334,6 +334,8 @@ class AsyncStorage {
   AsyncStorage([this.name = '']);
 
   final Map<AsyncFieldID, AsyncField> _fields = <AsyncFieldID, AsyncField>{};
+
+  List<AsyncField> get fields => _fields.values.toList();
 
   List<AsyncFieldID> get fieldsIDs => _fields.keys.toList();
 

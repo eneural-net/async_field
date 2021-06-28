@@ -6,7 +6,21 @@ void main() {
     setUp(() {});
 
     test('AsyncStorage basic', () async {
+      var k1 = AsyncFieldID.from([1, 2, 3]);
+      var k2 = AsyncFieldID.from([1, 2, 3]);
+
+      expect(k1 == k2, isTrue);
+
+      expect(k1.equalsKey([1, 2, 3]), isTrue);
+      expect(k1.equalsKey(k2.key), isTrue);
+
+      expect(k1.toString(), equals('AsyncFieldID{key: [1, 2, 3]}'));
+    });
+
+    test('AsyncStorage basic', () async {
       var storage = AsyncStorage();
+
+      expect(storage.toString(), equals('AsyncStorage{id: 1}'));
 
       var field = storage.getField<int>('a');
 
@@ -15,8 +29,14 @@ void main() {
       expect(identical(storage.getField('a'), field), isTrue);
 
       expect(storage.fieldsIDs.map((e) => e.keyAsString), equals(['a']));
+      expect(storage.fieldsIDs.map((e) => e.keyAsJson), equals(['"a"']));
 
-      expect(storage.fieldsIDs.contains(field.id), isTrue);
+      expect(storage.fields.map((e) => e.idKey).contains(field.idKey), isTrue);
+      expect(
+          storage.fields.map((e) => e.idKeyAsJson).contains(field.idKeyAsJson),
+          isTrue);
+
+      expect(storage.fieldsIDs.map((e) => e.key).toList(), equals(['a']));
 
       expect(field.isSet, isFalse);
       expect(field.value, isNull);
@@ -44,6 +64,7 @@ void main() {
       expect(field.valueAsJson, equals('123'));
       expect(field.valueAsDouble, equals(123.0));
       expect(field.valueAsInt, equals(123));
+      expect(field.valueAsBool, isTrue);
 
       expect(
           field.info,
@@ -79,7 +100,7 @@ void main() {
       expect(changes[0], equals(123456));
     });
 
-    test('AsyncStorage fetcher/saver', () async {
+    test('AsyncStorage fetcher/saver/deleter', () async {
       var storage = AsyncStorage();
 
       var storedValue = <int>[100];
