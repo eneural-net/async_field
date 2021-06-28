@@ -1,8 +1,8 @@
 import 'dart:async';
-
-import 'package:collection/collection.dart';
+import 'dart:convert';
 
 import 'package:async_extension/async_extension.dart';
+import 'package:collection/collection.dart';
 
 typedef AsyncFieldFetcher<T> = FutureOr<T> Function(AsyncField<T> asyncField);
 
@@ -45,6 +45,11 @@ class AsyncFieldID {
   int get hashCode {
     return _hashCode ??= _deepCollectionEquality.hash(key);
   }
+
+  @override
+  String toString() {
+    return 'AsyncFieldID{key: $key}';
+  }
 }
 
 class AsyncField<T> {
@@ -54,14 +59,63 @@ class AsyncField<T> {
   /// The field ID in the [storage].
   final AsyncFieldID id;
 
+  Object get idKey => id.key;
+
+  Object get idKeyJson => json.encode(id.key);
+
   T? _value;
+
+  String get valueAsJson => json.encode(value);
+
+  String get valueAsString =>
+      isSet ? '$_value' : (defaultValue ?? '?').toString();
+
+  double get valueAsDouble => double.parse(valueAsString);
+
+  int get valueAsInt => int.parse(valueAsString);
+
+  bool get valueAsBool {
+    var val = value;
+    if (val == null) {
+      return false;
+    }
+
+    if (val is num) {
+      return val > 0;
+    } else {
+      var s = valueAsString.trim();
+
+      if (_parseFalse(s)) {
+        return false;
+      }
+
+      var n = num.tryParse(s);
+      if (n != null) {
+        return n > 0;
+      }
+
+      s = s.toLowerCase();
+
+      return !_parseFalse(s);
+    }
+  }
+
+  static bool _parseFalse(String s) =>
+      s.isEmpty ||
+      s == '0' ||
+      s == 'false' ||
+      s == 'no' ||
+      s == 'null' ||
+      s == 'n';
+
+  T? defaultValue;
 
   int? _valueTime;
 
   AsyncField(this.storage, this.id);
 
   /// Returns the current field value.
-  T? get value => _value;
+  T? get value => _value ?? defaultValue;
 
   /// Same as [valueTime], but `millisecondsSinceEpoch`.
   int? get valueTimeMillisecondsSinceEpoch => _valueTime;
@@ -210,13 +264,27 @@ class AsyncField<T> {
   }
 
   @override
-  String toString() {
-    return 'AsyncField{ '
-        'id: $id, '
-        'value: $_value, '
-        'valueTime: $_valueTime, '
-        'storage: $storage '
-        '}';
+  String toString() => valueAsString;
+
+  String get info {
+    var storageInfo = storage.name;
+    if (storageInfo.isEmpty) {
+      storageInfo = storage.id.toString();
+    }
+
+    if (isSet) {
+      return '{ '
+          '"value": $valueAsJson , '
+          '"id": $idKeyJson , '
+          '"valueTime": $_valueTime , '
+          '"storage": $storageInfo'
+          ' }';
+    } else {
+      return '{ '
+          '"id": $idKeyJson , '
+          '"storage": $storageInfo'
+          ' }';
+    }
   }
 }
 
@@ -224,11 +292,11 @@ class AsyncField<T> {
 class AsyncStorage {
   static int _idCount = 0;
 
-  final id = ++_idCount;
+  final int id = ++_idCount;
 
-  final name;
+  final String name;
 
-  AsyncStorage([this.name = '?']);
+  AsyncStorage([this.name = '']);
 
   final Map<AsyncFieldID, AsyncField> _fields = <AsyncFieldID, AsyncField>{};
 
@@ -282,7 +350,9 @@ class AsyncStorage {
 
   @override
   String toString() {
-    return 'AsyncStorage{name: $name, id: $id}';
+    return 'AsyncStorage{' +
+        (name.isNotEmpty ? 'name: $name, ' : '') +
+        'id: $id}';
   }
 }
 
