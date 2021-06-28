@@ -17,7 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Dart version
-        run: dart --version
+        run: |
+          dart --version
+          uname -a
       - name: Install dependencies
         run: dart pub get
       - name: dart format
@@ -28,6 +30,22 @@ jobs:
         run: dart run dependency_validator
       - name: Run tests
         run: dart test
+      - name: Install lcov
+        run: |
+          apt-get update -y
+          apt-get install -y lcov
+      - name: Generate coverage report
+        run: |
+          dart pub run test_cov
+          genhtml -o coverage coverage/lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          directory: ./coverage/
+          flags: unittests
+          env_vars: OS,DART
+          fail_ci_if_error: true
+          verbose: true
       - name: dart pub publish --dry-run
         run: dart pub publish --dry-run
 
