@@ -5,7 +5,7 @@ void main() {
   group('AsyncField', () {
     setUp(() {});
 
-    test('AsyncStorage basic', () async {
+    test('AsyncFieldID', () async {
       var k1 = AsyncFieldID.from([1, 2, 3]);
       var k2 = AsyncFieldID.from([1, 2, 3]);
 
@@ -150,6 +150,67 @@ void main() {
       expect(deleted, isTrue);
 
       expect(storedValue, isEmpty);
+    });
+
+    test('AsyncField timeout', () async {
+      var storage = AsyncStorage();
+
+      expect(storage.toString(), matches(RegExp(r'AsyncStorage\{id: \d+\}')));
+
+      var storedValue = <int>[100];
+
+      var field = storage.getField<int>('a')
+        ..withFetcher((field) => ++storedValue[0])
+        ..timeout = Duration(seconds: 2);
+
+      expect(field, isNotNull);
+
+      expect(identical(storage.getField('a'), field), isTrue);
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+      expect(field.valueTimeMillisecondsSinceEpoch, isNull);
+      expect(field.valueTime, isNull);
+      expect(field.isValid, isFalse);
+
+      expect(
+          field.info,
+          matches(
+              RegExp(r'\{ "id": "a" , "timeout": 2000ms , "storage": \d+ \}')));
+
+      expect(field.get(), equals(101));
+      expect(field.isSet, isTrue);
+      expect(field.value, equals(101));
+      expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
+      expect(field.valueTime, isNotNull);
+      expect(field.isExpire, isFalse);
+      expect(field.isValid, isTrue);
+
+      expect(field.valueTimeUntilExpire > 100, isTrue);
+
+      expect(field.valueNoTimeoutCheck, equals(101));
+
+      var slateValues = <int>[];
+      expect(field.get(onSlateValue: (v) => slateValues.add(v)), equals(101));
+
+      expect(slateValues, equals([]));
+
+      await Future.delayed(Duration(milliseconds: 2100));
+
+      expect(field.valueNoTimeoutCheck, equals(101));
+
+      expect(field.valueTimeUntilExpire <= 0, isTrue);
+
+      expect(field.get(onSlateValue: (v) => slateValues.add(v)), equals(102));
+
+      expect(slateValues, equals([101]));
+
+      expect(await field.get(), equals(102));
+
+      expect(
+          field.info,
+          matches(RegExp(
+              r'\{ "value": 102 , "id": "a" , "valueTime": \d+ , "timeout": 2000ms , "storage": \d+ \}')));
     });
   });
 }

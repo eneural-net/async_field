@@ -72,16 +72,28 @@ class AsyncField<T> {
 
   T? _value;
 
-  String get valueAsJson => json.encode(value);
+  String get valueAsJson {
+    checkValueTimeout();
+    return json.encode(value);
+  }
 
-  String get valueAsString =>
-      isSet ? '$_value' : (defaultValue ?? '?').toString();
+  String get valueAsString {
+    checkValueTimeout();
+    return isSet ? '$_value' : (defaultValue ?? '?').toString();
+  }
 
-  double get valueAsDouble => double.parse(valueAsString);
+  double get valueAsDouble {
+    checkValueTimeout();
+    return double.parse(valueAsString);
+  }
 
-  int get valueAsInt => int.parse(valueAsString);
+  int get valueAsInt {
+    checkValueTimeout();
+    return int.parse(valueAsString);
+  }
 
   bool get valueAsBool {
+    checkValueTimeout();
     var val = value;
     return _parseBool(val);
   }
@@ -126,7 +138,14 @@ class AsyncField<T> {
   AsyncField(this.storage, this.id);
 
   /// Returns the current field value.
-  T? get value => _value ?? defaultValue;
+  T? get value {
+    checkValueTimeout();
+    return _value ?? defaultValue;
+  }
+
+  T? get valueNoTimeoutCheck {
+    return _value ?? defaultValue;
+  }
 
   /// Same as [valueTime], but `millisecondsSinceEpoch`.
   int? get valueTimeMillisecondsSinceEpoch => _valueTime;
@@ -139,12 +158,58 @@ class AsyncField<T> {
         : null;
   }
 
+  /// Returns the amount of time from the last value [set] or fetch.
+  int get valueElapsedTime {
+    var valueTime = _valueTime;
+    return valueTime != null
+        ? DateTime.now().millisecondsSinceEpoch - valueTime
+        : 0;
+  }
+
+  /// Returns the amount of time until the current value is expired (in ms).
+  int get valueTimeUntilExpire {
+    var timeout = this.timeout;
+    return timeout != null ? timeout.inMilliseconds - valueElapsedTime : 0;
+  }
+
+  /// Returns `true` if this [value] is valid, based in the [timeout] and [isSet].
+  bool get isValid => timeout != null
+      ? isSet && valueElapsedTime <= timeout!.inMilliseconds
+      : isSet;
+
+  /// Returns `true` if this value is expired, based in the [timeout].
+  bool get isExpire =>
+      timeout != null && valueElapsedTime > timeout!.inMilliseconds;
+
   /// Returns `true` if this field value is set.
   bool get isSet => _valueTime != null;
 
+  /// Checks [value] [timeout] and invalidate it if [isExpire].
+  T? checkValueTimeout() {
+    if (isExpire) {
+      var slate = _value;
+      _value = null;
+      _valueTime = null;
+      return slate;
+    } else {
+      return null;
+    }
+  }
+
   /// Returns the current value of the field.
-  FutureOr<T> get() {
+  ///
+  /// - [onSlateValue] if a slate value exists will be notified.
+  ///
+  /// A slate value is when the current value exists but is expired. Can
+  /// be used before a fetch is performed.
+  FutureOr<T> get({void Function(T slate)? onSlateValue}) {
+    var slate = checkValueTimeout();
+
     if (!isSet) {
+      if (slate != null && onSlateValue != null) {
+        onSlateValue(slate);
+      }
+
       var value = refresh();
       return value;
     } else {
@@ -288,6 +353,7 @@ class AsyncField<T> {
 
   Stream<AsyncField<T>> get onDispose => _onDisposeController.stream;
 
+  /// Disposes this field. Will remove it from [storage], but won't [delete] its [value].
   FutureOr<bool> dispose() {
     var ret = storage.dispose(this);
     return ret.resolveMapped((ok) {
@@ -298,6 +364,12 @@ class AsyncField<T> {
     });
   }
 
+  /// The values timeout.
+  Duration? timeout;
+
+  /// Returns `true` if this field value has timeout.
+  bool get hasTimeout => timeout != null;
+
   @override
   String toString() => valueAsString;
 
@@ -307,16 +379,21 @@ class AsyncField<T> {
       storageInfo = storage.id.toString();
     }
 
+    var timeoutInfo =
+        hasTimeout ? '"timeout": ${timeout!.inMilliseconds}ms , ' : '';
+
     if (isSet) {
       return '{ '
           '"value": $valueAsJson , '
           '"id": $idKeyAsJson , '
           '"valueTime": $_valueTime , '
+          '$timeoutInfo'
           '"storage": $storageInfo'
           ' }';
     } else {
       return '{ '
           '"id": $idKeyAsJson , '
+          '$timeoutInfo'
           '"storage": $storageInfo'
           ' }';
     }
@@ -341,6 +418,9 @@ class AsyncStorage {
 
   AsyncField operator [](dynamic id) => getField(id);
 
+  /// Timeout to use in all fields instantiated by this storage.
+  Duration? fieldsTimeout;
+
   /// Returns a [AsyncField] for the [id].
   AsyncField<T> getField<T>(dynamic id) {
     var fieldID = AsyncFieldID.from(id);
@@ -352,6 +432,10 @@ class AsyncStorage {
     }
 
     var field = AsyncField<T>(this, fieldID);
+
+    if (fieldsTimeout != null) {
+      field.timeout = fieldsTimeout;
+    }
 
     _fields[fieldID] = field;
 
