@@ -174,6 +174,15 @@ class AsyncField<T> {
     _value = value;
     _valueTime = DateTime.now().millisecondsSinceEpoch;
 
+    save();
+
+    return this;
+  }
+
+  AsyncField<T> _set(T value) {
+    _value = value;
+    _valueTime = DateTime.now().millisecondsSinceEpoch;
+
     _onChangeController.add(this);
 
     return this;
@@ -206,7 +215,7 @@ class AsyncField<T> {
 
   FutureOr<T> _onFetch(T val) {
     _onFetchController.add(this);
-    set(val);
+    _set(val);
     return val;
   }
 
@@ -237,7 +246,7 @@ class AsyncField<T> {
 
   FutureOr<T> _onSave(T val) {
     _onSaveController.add(this);
-    set(val);
+    _set(val);
     return val;
   }
 
@@ -350,7 +359,7 @@ class AsyncStorage {
   /// Sets the [AsyncField] for the [id] with [value].
   AsyncField<T> setField<T>(dynamic id, T value) {
     var field = getField<T>(id);
-    field.set(value);
+    field._set(value);
     return field;
   }
 
@@ -360,14 +369,10 @@ class AsyncStorage {
   }
 
   /// Saves an [asyncField] [value].
-  FutureOr<T> save<T>(AsyncField<T> asyncField, T value) {
-    throw AsyncFieldError('No saver for $asyncField', asyncField.id);
-  }
+  FutureOr<T> save<T>(AsyncField<T> asyncField, T value) => value;
 
   /// Deletes an [asyncField] [value].
-  FutureOr<bool> delete<T>(AsyncField<T> asyncField) {
-    throw AsyncFieldError('No deleter for $asyncField', asyncField.id);
-  }
+  FutureOr<bool> delete<T>(AsyncField<T> asyncField) => false;
 
   /// Disposes an [asyncField].
   FutureOr<bool> dispose(AsyncField asyncField) {

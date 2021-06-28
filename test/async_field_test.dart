@@ -78,5 +78,47 @@ void main() {
 
       expect(changes[0], equals(123456));
     });
+
+    test('AsyncStorage fetcher/saver', () async {
+      var storage = AsyncStorage();
+
+      var storedValue = <int>[100];
+
+      var field = storage.getField<int>('a')
+        ..withFetcher((field) => storedValue[0])
+        ..withSaver((field, val) => storedValue[0] = val);
+
+      expect(field, isNotNull);
+      expect(identical(storage.getField('a'), field), isTrue);
+
+      expect(field.value, isNull);
+
+      var changes = <int>[];
+
+      field.onChange.listen((field) => changes.add(field.value!));
+
+      expect(changes.isEmpty, isTrue);
+
+      expect(await field.get(), equals(100));
+      expect(field.isSet, isTrue);
+
+      expect(storedValue, equals([100]));
+
+      expect(changes.isNotEmpty, isTrue);
+
+      expect(field.value, equals(100));
+
+      expect(changes, equals([100]));
+
+      field.set(200);
+
+      expect(field.value, equals(200));
+
+      await Future.delayed(Duration(milliseconds: 200));
+
+      expect(changes, equals([100, 200]));
+
+      expect(storedValue, equals([200]));
+    });
   });
 }
