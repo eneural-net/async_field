@@ -1,3 +1,9 @@
+## 1.0.2
+
+- Adjust `pubspec.yaml` `description`.
+- Adjust `README.md`.
+- Fix dispose.
+
 ## 1.0.1
 
 - Add `AsyncField.timeout`.

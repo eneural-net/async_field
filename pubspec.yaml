@@ -1,6 +1,6 @@
 name: async_field
-description: Async fields, than can be stored or fetched from any source (databases, web services, local storage or other thread/isolate), with observable values, caches and stale versions.
-version: 1.0.1
+description: Async fields that can be stored or fetched from any source (databases, web services, local storage or other thread/isolate), with observable values, caches and stale versions.
+version: 1.0.2
 homepage: https://github.com/eneural-net/async_field
 
 environment:

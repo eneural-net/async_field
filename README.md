@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/github/license/eneural-net/async_field?logo=open-source-initiative&logoColor=green)](https://github.com/eneural-net/async_field/blob/master/LICENSE)
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Feneural-net%2Fasync_field.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Feneural-net%2Fasync_field?ref=badge_shield)
 
-Async fields, than can be stored or fetched from any source (databases, web services, local storage or other thread/isolate), with observable values, caches and stale versions.
+Async fields that can be stored or fetched from any source (databases, web services, local storage or other thread/isolate), with observable values, caches and stale versions.
 
 ## Usage
 

@@ -458,11 +458,11 @@ class AsyncStorage {
   FutureOr<T> save<T>(AsyncField<T> asyncField, T value) => value;
 
   /// Deletes an [asyncField] [value].
-  FutureOr<bool> delete<T>(AsyncField<T> asyncField) => false;
+  FutureOr<bool> delete<T>(AsyncField<T> asyncField) => true;
 
   /// Disposes an [asyncField].
   FutureOr<bool> dispose(AsyncField asyncField) {
-    return _fields.remove(asyncField) != null;
+    return _fields.remove(asyncField.id) != null;
   }
 
   @override

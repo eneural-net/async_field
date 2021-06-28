@@ -42,11 +42,13 @@ void main() {
       expect(field.value, isNull);
       expect(field.valueTimeMillisecondsSinceEpoch, isNull);
       expect(field.valueTime, isNull);
+      expect(field.isValid, isFalse);
 
       expect(field.info, equals('{ "id": "a" , "storage": 1 }'));
 
       expect(field.set(123).get(), equals(123));
       expect(field.isSet, isTrue);
+      expect(field.isValid, isTrue);
 
       expect(field.value, equals(123));
       expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
@@ -75,8 +77,8 @@ void main() {
     test('AsyncStorage fetcher', () async {
       var storage = AsyncStorage();
 
-      var field =
-          storage.getField<int>('a').withFetcher((asyncField) => 123456);
+      var field = storage.getField<int>('a')
+        ..withFetcher((asyncField) => 123456);
 
       expect(field, isNotNull);
 
@@ -84,20 +86,25 @@ void main() {
 
       expect(field.value, isNull);
 
-      var changes = <int>[];
+      var fetches = <int>[];
+      field.onFetch.listen((field) => fetches.add(field.valueNoTimeoutCheck!));
 
+      var changes = <int>[];
       field.onChange.listen((field) => changes.add(field.value!));
 
-      expect(changes.isEmpty, isTrue);
+      expect(fetches, isEmpty);
+      expect(changes, isEmpty);
 
       expect(await field.get(), equals(123456));
       expect(field.isSet, isTrue);
 
+      expect(fetches.isNotEmpty, isTrue);
       expect(changes.isNotEmpty, isTrue);
 
       expect(field.value, equals(123456));
 
-      expect(changes[0], equals(123456));
+      expect(fetches, equals([123456]));
+      expect(changes, equals([123456]));
     });
 
     test('AsyncStorage fetcher/saver/deleter', () async {
@@ -119,10 +126,21 @@ void main() {
       expect(field.value, isNull);
 
       var changes = <int>[];
-
       field.onChange.listen((field) => changes.add(field.value!));
 
+      var saves = <int>[];
+      field.onSave.listen((field) => saves.add(field.value!));
+
+      var deletes = <int>[];
+      field.onDelete.listen((field) => deletes.add(field.value!));
+
+      var disposes = <int>[];
+      field.onDispose.listen((field) => disposes.add(field.value!));
+
       expect(changes.isEmpty, isTrue);
+      expect(saves.isEmpty, isTrue);
+      expect(deletes.isEmpty, isTrue);
+      expect(disposes.isEmpty, isTrue);
 
       expect(await field.get(), equals(100));
       expect(field.isSet, isTrue);
@@ -130,6 +148,7 @@ void main() {
       expect(storedValue, equals([100]));
 
       expect(changes.isNotEmpty, isTrue);
+      expect(saves.isEmpty, isTrue);
 
       expect(field.value, equals(100));
 
@@ -142,14 +161,21 @@ void main() {
       await Future.delayed(Duration(milliseconds: 200));
 
       expect(changes, equals([100, 200]));
+      expect(saves, equals([200]));
+      expect(deletes, isEmpty);
+      expect(disposes, isEmpty);
 
       expect(storedValue, equals([200]));
 
       var deleted = await field.delete();
 
       expect(deleted, isTrue);
-
       expect(storedValue, isEmpty);
+
+      await Future.delayed(Duration(milliseconds: 200));
+
+      expect(deletes, equals([200]));
+      expect(disposes, equals([200]));
     });
 
     test('AsyncField timeout', () async {
