@@ -76,6 +76,10 @@ class AsyncField<T> {
 
   bool get valueAsBool {
     var val = value;
+    return _parseBool(val);
+  }
+
+  static bool _parseBool(val) {
     if (val == null) {
       return false;
     }
@@ -83,7 +87,7 @@ class AsyncField<T> {
     if (val is num) {
       return val > 0;
     } else {
-      var s = valueAsString.trim();
+      var s = '$val'.trim();
 
       if (_parseFalse(s)) {
         return false;
@@ -141,6 +145,18 @@ class AsyncField<T> {
     }
   }
 
+  FutureOr<String> getAsString() => get().resolveMapped((v) => '$v');
+
+  FutureOr<String> getAsJson() => get().resolveMapped(json.encode);
+
+  FutureOr<double> getAsDouble() =>
+      getAsString().resolveMapped((v) => double.parse(v));
+
+  FutureOr<int> getAsInt() => getAsString().resolveMapped((v) => int.parse(v));
+
+  FutureOr<bool> getAsBool() =>
+      getAsString().resolveMapped((v) => _parseBool(v));
+
   final StreamController<AsyncField<T>> _onChangeController =
       StreamController<AsyncField<T>>();
 
@@ -158,6 +174,7 @@ class AsyncField<T> {
 
   AsyncFieldFetcher<T>? fetcher;
 
+  /// Defines the [fetcher] of this field.
   AsyncField<T> withFetcher(AsyncFieldFetcher<T>? fetcher,
       {bool overwrite = false}) {
     if (overwrite || this.fetcher == null) {
@@ -188,6 +205,7 @@ class AsyncField<T> {
 
   AsyncFieldSaver<T>? saver;
 
+  /// Defines the [saver] of this field.
   AsyncField<T> withSaver(AsyncFieldSaver<T>? saver, {bool overwrite = false}) {
     if (overwrite || this.saver == null) {
       this.saver = saver;
@@ -218,6 +236,7 @@ class AsyncField<T> {
 
   AsyncFieldDeleter<T>? deleter;
 
+  /// Defines the [deleter] of this field.
   AsyncField<T> withDeleter(AsyncFieldDeleter<T>? deleter,
       {bool overwrite = false}) {
     if (overwrite || this.deleter == null) {
