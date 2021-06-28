@@ -86,7 +86,11 @@ void main() {
 
       var field = storage.getField<int>('a')
         ..withFetcher((field) => storedValue[0])
-        ..withSaver((field, val) => storedValue[0] = val);
+        ..withSaver((field, val) => storedValue[0] = val)
+        ..withDeleter((field) {
+          storedValue.clear();
+          return true ;
+        });
 
       expect(field, isNotNull);
       expect(identical(storage.getField('a'), field), isTrue);
@@ -119,6 +123,13 @@ void main() {
       expect(changes, equals([100, 200]));
 
       expect(storedValue, equals([200]));
+
+      var deleted = await field.delete();
+
+      expect(deleted, isTrue);
+
+      expect(storedValue, isEmpty);
+
     });
   });
 }
