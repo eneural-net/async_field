@@ -14,6 +14,10 @@ void main() {
 
       expect(identical(storage.getField('a'), field), isTrue);
 
+      expect(storage.fieldsIDs.map((e) => e.keyAsString), equals(['a']));
+
+      expect(storage.fieldsIDs.contains(field.id), isTrue);
+
       expect(field.isSet, isFalse);
       expect(field.value, isNull);
       expect(field.valueTimeMillisecondsSinceEpoch, isNull);
@@ -30,11 +34,13 @@ void main() {
 
       expect(await field.get(), equals(123));
       expect(await field.getAsString(), equals('123'));
+      expect(await field.getAsJson(), equals('123'));
       expect(await field.getAsDouble(), equals(123.0));
       expect(await field.getAsInt(), equals(123));
       expect(await field.getAsBool(), equals(true));
 
       expect(field.valueAsString, equals('123'));
+      expect(field.valueAsJson, equals('123'));
       expect(field.valueAsJson, equals('123'));
       expect(field.valueAsDouble, equals(123.0));
       expect(field.valueAsInt, equals(123));

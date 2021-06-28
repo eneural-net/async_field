@@ -13,7 +13,14 @@ typedef AsyncFieldDeleter<T> = FutureOr<bool> Function(
     AsyncField<T> asyncField);
 
 class AsyncFieldID {
+  /// The key of this field ID.
   final Object key;
+
+  /// Returns [key] as [String].
+  String get keyAsString => '$key';
+
+  /// Returns [key] as JSON.
+  String get keyAsJson => json.encode(key);
 
   AsyncFieldID(this.key);
 
