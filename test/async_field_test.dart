@@ -89,7 +89,7 @@ void main() {
         ..withSaver((field, val) => storedValue[0] = val)
         ..withDeleter((field) {
           storedValue.clear();
-          return true ;
+          return true;
         });
 
       expect(field, isNotNull);
@@ -129,7 +129,6 @@ void main() {
       expect(deleted, isTrue);
 
       expect(storedValue, isEmpty);
-
     });
   });
 }
