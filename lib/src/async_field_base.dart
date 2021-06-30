@@ -235,13 +235,11 @@ class AsyncField<T> {
   Stream<AsyncField<T>> get onChange => _onChangeController.stream;
 
   /// Sets this field with [value].
-  AsyncField<T> set(T value) {
+  FutureOr<T> set(T value) {
     _value = value;
     _valueTime = DateTime.now().millisecondsSinceEpoch;
 
-    save();
-
-    return this;
+    return save();
   }
 
   AsyncField<T> _set(T value) {
@@ -443,10 +441,9 @@ class AsyncStorage {
   }
 
   /// Sets the [AsyncField] for the [id] with [value].
-  AsyncField<T> setField<T>(dynamic id, T value) {
+  FutureOr<T> setField<T>(dynamic id, T value) {
     var field = getField<T>(id);
-    field._set(value);
-    return field;
+    return field.set(value);
   }
 
   /// Fetches an [asyncField] value.

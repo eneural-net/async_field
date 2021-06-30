@@ -27,6 +27,7 @@ void main() {
       expect(field, isNotNull);
 
       expect(identical(storage.getField('a'), field), isTrue);
+      expect(identical(storage['a'], field), isTrue);
 
       expect(storage.fieldsIDs.map((e) => e.keyAsString), equals(['a']));
       expect(storage.fieldsIDs.map((e) => e.keyAsJson), equals(['"a"']));
@@ -46,7 +47,7 @@ void main() {
 
       expect(field.info, equals('{ "id": "a" , "storage": 1 }'));
 
-      expect(field.set(123).get(), equals(123));
+      expect(field.set(123), equals(123));
       expect(field.isSet, isTrue);
       expect(field.isValid, isTrue);
 
@@ -62,6 +63,7 @@ void main() {
       expect(await field.getAsBool(), equals(true));
 
       expect(field.valueAsString, equals('123'));
+      expect(field.toString(), equals('123'));
       expect(field.valueAsJson, equals('123'));
       expect(field.valueAsJson, equals('123'));
       expect(field.valueAsDouble, equals(123.0));
@@ -72,6 +74,10 @@ void main() {
           field.info,
           matches(RegExp(
               r'\{ "value": 123 , "id": "a" , "valueTime": \d+ , "storage": 1 \}')));
+
+      expect(await storage.setField('a', 456), equals(456));
+      expect(field.value, equals(456));
+      expect(field.valueAsString, equals('456'));
     });
 
     test('AsyncStorage fetcher', () async {
