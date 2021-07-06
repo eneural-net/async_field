@@ -1,3 +1,10 @@
+## 1.0.4
+
+- Added `periodicRefresh`.
+- Fixed events to allow multiple listeners (`StreamController.broadcast`).
+- Added DSX dynamic interface (package `dom_builder`).
+- improve tests.
+
 ## 1.0.3
 
 - Change `AsyncField.set` to return the defined value.

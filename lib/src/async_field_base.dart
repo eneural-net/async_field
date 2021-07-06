@@ -196,6 +196,14 @@ class AsyncField<T> {
     }
   }
 
+  /// Discard the current [value].
+  T? disposeValue() {
+    var slate = _value;
+    _value = null;
+    _valueTime = null;
+    return slate;
+  }
+
   /// Returns the current value of the field.
   ///
   /// - [onSlateValue] if a slate value exists will be notified.
@@ -230,7 +238,7 @@ class AsyncField<T> {
       getAsString().resolveMapped((v) => _parseBool(v));
 
   final StreamController<AsyncField<T>> _onChangeController =
-      StreamController<AsyncField<T>>();
+      StreamController<AsyncField<T>>.broadcast();
 
   Stream<AsyncField<T>> get onChange => _onChangeController.stream;
 
@@ -248,7 +256,33 @@ class AsyncField<T> {
 
     _onChangeController.add(this);
 
+    _checkPeriodicRefresh();
+
     return this;
+  }
+
+  void _checkPeriodicRefresh() {
+    var periodicRefresh = this.periodicRefresh;
+    if (periodicRefresh == null || periodicRefresh.inMilliseconds < 1) return;
+
+    var timeToPeriodicRefresh =
+        periodicRefresh.inMilliseconds - valueElapsedTime;
+
+    if (timeToPeriodicRefresh <= 0) {
+      refresh();
+      return;
+    }
+
+    Future.delayed(Duration(milliseconds: timeToPeriodicRefresh), () {
+      var periodicRefresh = this.periodicRefresh;
+      if (periodicRefresh == null || periodicRefresh.inMilliseconds < 1) return;
+
+      if (valueElapsedTime < periodicRefresh.inMilliseconds) {
+        _checkPeriodicRefresh();
+      } else {
+        refresh();
+      }
+    });
   }
 
   AsyncFieldFetcher<T>? fetcher;
@@ -263,15 +297,29 @@ class AsyncField<T> {
   }
 
   final StreamController<AsyncField<T>> _onFetchController =
-      StreamController<AsyncField<T>>();
+      StreamController<AsyncField<T>>.broadcast();
 
   Stream<AsyncField<T>> get onFetch => _onFetchController.stream;
 
+  /// Returns `true` if a [refresh] can be performed.
+  bool get canRefresh => fetcher != null || storage.canFetch;
+
+  Future<T>? _fetching;
+
   /// Refreshes this field and returns the fresh value.
   FutureOr<T> refresh() {
+    var fetching = _fetching;
+    if (fetching != null) {
+      return fetching;
+    }
+
     var fetcher = this.fetcher;
 
     var ret = fetcher != null ? fetcher(this) : storage.fetch<T>(this);
+
+    if (ret is Future<T>) {
+      _fetching = ret;
+    }
 
     return ret.resolveMapped<T>(_onFetch);
   }
@@ -279,6 +327,7 @@ class AsyncField<T> {
   FutureOr<T> _onFetch(T val) {
     _onFetchController.add(this);
     _set(val);
+    _fetching = null;
     return val;
   }
 
@@ -293,7 +342,7 @@ class AsyncField<T> {
   }
 
   final StreamController<AsyncField<T>> _onSaveController =
-      StreamController<AsyncField<T>>();
+      StreamController<AsyncField<T>>.broadcast();
 
   Stream<AsyncField<T>> get onSave => _onSaveController.stream;
 
@@ -325,7 +374,7 @@ class AsyncField<T> {
   }
 
   final StreamController<AsyncField<T>> _onDeleteController =
-      StreamController<AsyncField<T>>();
+      StreamController<AsyncField<T>>.broadcast();
 
   Stream<AsyncField<T>> get onDelete => _onDeleteController.stream;
 
@@ -347,7 +396,7 @@ class AsyncField<T> {
   }
 
   final StreamController<AsyncField<T>> _onDisposeController =
-      StreamController<AsyncField<T>>();
+      StreamController<AsyncField<T>>.broadcast();
 
   Stream<AsyncField<T>> get onDispose => _onDisposeController.stream;
 
@@ -365,10 +414,20 @@ class AsyncField<T> {
   /// The values timeout.
   Duration? timeout;
 
-  /// Returns `true` if this field value has timeout.
-  bool get hasTimeout => timeout != null;
+  /// Returns `true` if this field value has [timeout].
+  bool get hasTimeout => timeout != null && timeout!.inMilliseconds >= 1;
+
+  /// Refresh period. After set a value, it will refresh the value
+  /// periodically.
+  Duration? periodicRefresh;
+
+  /// Returns `true` if this field value has [periodicRefresh].
+  bool get hasPeriodicRefresh =>
+      periodicRefresh != null && periodicRefresh!.inMilliseconds >= 1;
 
   @override
+
+  /// Same as [valueAsString].
   String toString() => valueAsString;
 
   String get info {
@@ -396,6 +455,20 @@ class AsyncField<T> {
           ' }';
     }
   }
+
+  /// DSX dynamic interface (package `dom_builder`).
+  dynamic toDSXValue() {
+    if (isSet && isValid) {
+      return valueNoTimeoutCheck;
+    } else {
+      return get();
+    }
+  }
+
+  /// DSX dynamic interface (package `dom_builder`).
+  StreamSubscription<AsyncField<T>> listenDSXValue(
+          void Function(AsyncField<T> field)? onData) =>
+      onChange.listen(onData);
 }
 
 /// A storage for [AsyncField] instances.
@@ -446,9 +519,13 @@ class AsyncStorage {
     return field.set(value);
   }
 
+  /// Returns `true` if a [fetch] can be performed.
+  bool get canFetch => false;
+
   /// Fetches an [asyncField] value.
   FutureOr<T> fetch<T>(AsyncField<T> asyncField) {
-    throw AsyncFieldError('No fetcher for $asyncField', asyncField.id);
+    throw AsyncFieldError(
+        'No fetcher for ${asyncField.runtimeType}', asyncField.id);
   }
 
   /// Saves an [asyncField] [value].
@@ -470,7 +547,7 @@ class AsyncStorage {
   }
 }
 
-class AsyncFieldError {
+class AsyncFieldError extends Error {
   final String message;
 
   final Object? id;

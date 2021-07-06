@@ -1,3 +1,6 @@
+@Timeout(Duration(seconds: 20))
+import 'dart:async';
+
 import 'package:async_field/async_field.dart';
 import 'package:test/test.dart';
 
@@ -39,6 +42,8 @@ void main() {
 
       expect(storage.fieldsIDs.map((e) => e.key).toList(), equals(['a']));
 
+      expect(field.canRefresh, isFalse);
+
       expect(field.isSet, isFalse);
       expect(field.value, isNull);
       expect(field.valueTimeMillisecondsSinceEpoch, isNull);
@@ -78,6 +83,8 @@ void main() {
       expect(await storage.setField('a', 456), equals(456));
       expect(field.value, equals(456));
       expect(field.valueAsString, equals('456'));
+
+      expect(field.toDSXValue(), equals(456));
     });
 
     test('AsyncStorage fetcher', () async {
@@ -115,6 +122,8 @@ void main() {
 
     test('AsyncStorage fetcher/saver/deleter', () async {
       var storage = AsyncStorage();
+
+      expect(storage.canFetch, isFalse);
 
       var storedValue = <int>[100];
 
@@ -205,6 +214,8 @@ void main() {
       expect(field.valueTime, isNull);
       expect(field.isValid, isFalse);
 
+      expect(field.canRefresh, isTrue);
+
       expect(
           field.info,
           matches(
@@ -243,6 +254,106 @@ void main() {
           field.info,
           matches(RegExp(
               r'\{ "value": 102 , "id": "a" , "valueTime": \d+ , "timeout": 2000ms , "storage": \d+ \}')));
+
+      field.timeout = Duration(seconds: 10);
+      field.periodicRefresh = Duration(seconds: 1);
+
+      expect(field.hasTimeout, isTrue);
+      expect(field.hasPeriodicRefresh, isTrue);
+
+      var events = [];
+      field.listenDSXValue((field) {
+        events.add(field.valueNoTimeoutCheck);
+      });
+
+      field.refresh();
+
+      expect(await field.get(), equals(103));
+
+      await Future.delayed(Duration(milliseconds: 1100));
+
+      expect(await field.get(), equals(104));
+
+      expect(await field.get(), equals(104));
+
+      field.set(1001);
+      expect(await field.get(), equals(1001));
+
+      field.timeout = null;
+      field.periodicRefresh = null;
+
+      expect(field.hasTimeout, isFalse);
+      expect(field.hasPeriodicRefresh, isFalse);
+
+      expect(events, equals([103, 104, 1001]));
+
+      field.disposeValue();
+
+      expect(field.isSet, isFalse);
+
+      expect(await field.get(), equals(105));
+
+      expect(events, equals([103, 104, 1001, 105]));
+    });
+
+    test('MyAsyncStorage', () async {
+      var storage = MyAsyncStorage();
+
+      expect(storage.canFetch, isTrue);
+
+      var field = storage.getField<String>('a');
+
+      expect(field.canRefresh, isTrue);
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+
+      expect(await field.get(), equals('a'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('a'));
+      expect(field.valueAsString, equals('a'));
+      expect(field.valueAsBool, isTrue);
+    });
+
+    test('MyAsyncStorage', () async {
+      var storage = AsyncStorage();
+
+      expect(storage.canFetch, isFalse);
+
+      var field = storage.getField<String>('a');
+
+      expect(field.canRefresh, isFalse);
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+
+      Object? error;
+      try {
+        await field.get();
+      } catch (e) {
+        error = e;
+      }
+
+      expect(error, TypeMatcher<AsyncFieldError>());
+      expect(
+          '$error',
+          equals(
+              'AsyncFieldError{message: No fetcher for AsyncField<String>, id: AsyncFieldID{key: a}}'));
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
     });
   });
+}
+
+class MyAsyncStorage extends AsyncStorage {
+  @override
+  bool get canFetch => true;
+
+  @override
+  FutureOr<T> fetch<T>(AsyncField<T> field) {
+    return field.valueNoTimeoutCheck ?? field.id.key.toString() as T;
+  }
 }
