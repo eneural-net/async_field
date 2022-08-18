@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:async_extension/async_extension.dart';
@@ -173,13 +172,19 @@ class AsyncField<T> {
   }
 
   /// Returns `true` if this [value] is valid, based in the [timeout] and [isSet].
-  bool get isValid => timeout != null
-      ? isSet && valueElapsedTime <= timeout!.inMilliseconds
-      : isSet;
+  bool get isValid {
+    var timeout = this.timeout;
+    return timeout != null
+        ? isSet && valueElapsedTime <= timeout.inMilliseconds
+        : isSet;
+  }
 
   /// Returns `true` if this value is expired, based in the [timeout].
-  bool get isExpire =>
-      timeout != null && valueElapsedTime > timeout!.inMilliseconds;
+  bool get isExpire {
+    var timeout = this.timeout;
+
+    return timeout != null && valueElapsedTime > timeout.inMilliseconds;
+  }
 
   /// Returns `true` if this field value is set.
   bool get isSet => _valueTime != null;
@@ -221,7 +226,7 @@ class AsyncField<T> {
       var value = refresh();
       return value;
     } else {
-      return _value!;
+      return _value as T;
     }
   }
 
@@ -349,7 +354,11 @@ class AsyncField<T> {
   /// Saves this field [value] and returns the saved value.
   FutureOr<T> save() {
     var saver = this.saver;
-    var value = _value!;
+    var value = _value;
+
+    if (value is! T) {
+      throw StateError("Value not set!");
+    }
 
     var ret = saver != null ? saver(this, value) : storage.save<T>(this, value);
 
@@ -378,7 +387,8 @@ class AsyncField<T> {
 
   Stream<AsyncField<T>> get onDelete => _onDeleteController.stream;
 
-  /// Deletes this field [value].
+  /// Deletes this field [value] from storage, but won't [dispose] it.
+  /// See [deletedValue].
   FutureOr<bool> delete() {
     var deleter = this.deleter;
 
@@ -387,11 +397,25 @@ class AsyncField<T> {
     return ret.resolveMapped(_onDelete);
   }
 
+  T? _deletedValue;
+
+  /// The last deleted value. See [delete].
+  T? get deletedValue => _deletedValue;
+
+  void disposeDeletedValue() {
+    _deletedValue = null;
+  }
+
   FutureOr<bool> _onDelete(bool ok) {
     if (ok) {
+      _deletedValue = _value;
+
+      _value = null;
+      _valueTime = DateTime.now().millisecondsSinceEpoch;
+
       _onDeleteController.add(this);
-      dispose();
     }
+
     return ok;
   }
 
@@ -415,15 +439,20 @@ class AsyncField<T> {
   Duration? timeout;
 
   /// Returns `true` if this field value has [timeout].
-  bool get hasTimeout => timeout != null && timeout!.inMilliseconds >= 1;
+  bool get hasTimeout {
+    var timeout = this.timeout;
+    return timeout != null && timeout.inMilliseconds >= 1;
+  }
 
   /// Refresh period. After set a value, it will refresh the value
   /// periodically.
   Duration? periodicRefresh;
 
   /// Returns `true` if this field value has [periodicRefresh].
-  bool get hasPeriodicRefresh =>
-      periodicRefresh != null && periodicRefresh!.inMilliseconds >= 1;
+  bool get hasPeriodicRefresh {
+    var periodicRefresh = this.periodicRefresh;
+    return periodicRefresh != null && periodicRefresh.inMilliseconds >= 1;
+  }
 
   @override
 
@@ -541,9 +570,7 @@ class AsyncStorage {
 
   @override
   String toString() {
-    return 'AsyncStorage{' +
-        (name.isNotEmpty ? 'name: $name, ' : '') +
-        'id: $id}';
+    return 'AsyncStorage{${name.isNotEmpty ? 'name: $name, ' : ''}id: $id}';
   }
 }
 

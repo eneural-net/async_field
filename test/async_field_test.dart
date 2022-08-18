@@ -1,6 +1,4 @@
 @Timeout(Duration(seconds: 20))
-import 'dart:async';
-
 import 'package:async_field/async_field.dart';
 import 'package:test/test.dart';
 
@@ -125,11 +123,11 @@ void main() {
 
       expect(storage.canFetch, isFalse);
 
-      var storedValue = <int>[100];
+      var storedValue = <String, int>{'a': 100};
 
       var field = storage.getField<int>('a')
-        ..withFetcher((field) => storedValue[0])
-        ..withSaver((field, val) => storedValue[0] = val)
+        ..withFetcher((field) => storedValue[field.id.keyAsString]!)
+        ..withSaver((field, val) => storedValue[field.id.keyAsString] = val)
         ..withDeleter((field) {
           storedValue.clear();
           return true;
@@ -147,7 +145,7 @@ void main() {
       field.onSave.listen((field) => saves.add(field.value!));
 
       var deletes = <int>[];
-      field.onDelete.listen((field) => deletes.add(field.value!));
+      field.onDelete.listen((field) => deletes.add(field.deletedValue!));
 
       var disposes = <int>[];
       field.onDispose.listen((field) => disposes.add(field.value!));
@@ -160,7 +158,7 @@ void main() {
       expect(await field.get(), equals(100));
       expect(field.isSet, isTrue);
 
-      expect(storedValue, equals([100]));
+      expect(storedValue, equals({'a': 100}));
 
       expect(changes.isNotEmpty, isTrue);
       expect(saves.isEmpty, isTrue);
@@ -180,17 +178,38 @@ void main() {
       expect(deletes, isEmpty);
       expect(disposes, isEmpty);
 
-      expect(storedValue, equals([200]));
+      expect(storedValue, equals({'a': 200}));
 
       var deleted = await field.delete();
 
       expect(deleted, isTrue);
+      expect(field.value, isNull);
       expect(storedValue, isEmpty);
 
       await Future.delayed(Duration(milliseconds: 200));
 
       expect(deletes, equals([200]));
-      expect(disposes, equals([200]));
+      expect(disposes, equals([]));
+
+      await field.set(300);
+
+      expect(field.value, equals(300));
+      expect(storedValue, equals({'a': 300}));
+
+      expect(changes, equals([100, 200, 300]));
+      expect(saves, equals([200, 300]));
+      expect(deletes, [200]);
+      expect(disposes, isEmpty);
+
+      await field.dispose();
+
+      expect(field.value, equals(300));
+      expect(storedValue, equals({'a': 300}));
+
+      expect(changes, equals([100, 200, 300]));
+      expect(saves, equals([200, 300]));
+      expect(deletes, [200]);
+      expect(disposes, [300]);
     });
 
     test('AsyncField timeout', () async {

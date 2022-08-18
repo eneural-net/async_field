@@ -1,17 +1,17 @@
 name: async_field
 description: Async fields that can be stored or fetched from any source (databases, web services, local storage or other thread/isolate), with observable values, caches and stale versions.
-version: 1.0.4
+version: 1.0.5
 homepage: https://github.com/eneural-net/async_field
 
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: '>=2.14.0 <3.0.0'
 
 dependencies:
-  collection: ^1.15.0
-  async_extension: ^1.0.4
+  collection: ^1.16.0
+  async_extension: ^1.0.12
 
 dev_dependencies:
-  pedantic: ^1.11.0
-  test: ^1.17.9
-  dependency_validator: ^3.1.0
-  test_cov: ^1.0.1
+  lints: ^2.0.0
+  test: ^1.21.4
+  dependency_validator: ^3.2.2
+  coverage: ^1.3.2
