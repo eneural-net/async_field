@@ -1,3 +1,9 @@
+## 1.0.6
+
+- `AsyncStorage`:
+  - Added `close` and `isClosed`:
+    will stop `fetch`, `save` and `delete` operations.
+
 ## 1.0.5
 
 - Added `deletedValue`.

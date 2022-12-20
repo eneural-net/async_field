@@ -11,6 +11,7 @@ typedef AsyncFieldSaver<T> = FutureOr<T> Function(
 typedef AsyncFieldDeleter<T> = FutureOr<bool> Function(
     AsyncField<T> asyncField);
 
+/// The ID of an [AsyncField].
 class AsyncFieldID {
   /// The key of this field ID.
   final Object key;
@@ -58,6 +59,7 @@ class AsyncFieldID {
   }
 }
 
+/// An asynchronous field @ [storage].
 class AsyncField<T> {
   /// The field storage.
   final AsyncStorage storage;
@@ -135,6 +137,11 @@ class AsyncField<T> {
   int? _valueTime;
 
   AsyncField(this.storage, this.id);
+
+  /// Returns `true` if [storage.isClosed].
+  /// - A closed [storage] will stop `fetch`, `save` and `delete` operations.
+  /// - If [storage] is closed this field will return `slate` values only.
+  bool get isClosed => storage.isClosed;
 
   /// Returns the current field value.
   T? get value {
@@ -219,8 +226,12 @@ class AsyncField<T> {
     var slate = checkValueTimeout();
 
     if (!isSet) {
-      if (slate != null && onSlateValue != null) {
-        onSlateValue(slate);
+      if (slate != null) {
+        if (isClosed) {
+          return slate;
+        } else if (onSlateValue != null) {
+          onSlateValue(slate);
+        }
       }
 
       var value = refresh();
@@ -267,6 +278,8 @@ class AsyncField<T> {
   }
 
   void _checkPeriodicRefresh() {
+    if (isClosed) return;
+
     var periodicRefresh = this.periodicRefresh;
     if (periodicRefresh == null || periodicRefresh.inMilliseconds < 1) return;
 
@@ -307,7 +320,7 @@ class AsyncField<T> {
   Stream<AsyncField<T>> get onFetch => _onFetchController.stream;
 
   /// Returns `true` if a [refresh] can be performed.
-  bool get canRefresh => fetcher != null || storage.canFetch;
+  bool get canRefresh => (fetcher != null || storage.canFetch) && !isClosed;
 
   Future<T>? _fetching;
 
@@ -316,6 +329,20 @@ class AsyncField<T> {
     var fetching = _fetching;
     if (fetching != null) {
       return fetching;
+    }
+
+    if (isClosed) {
+      var value = _value;
+      if (value != null) {
+        return value;
+      }
+
+      try {
+        return null as T;
+      } catch (_) {
+        throw StateError(
+            "Closed `storage`: can't return `null` value as `$T` @ $runtimeType#${id.key}");
+      }
     }
 
     var fetcher = this.fetcher;
@@ -360,6 +387,10 @@ class AsyncField<T> {
       throw StateError("Value not set!");
     }
 
+    if (isClosed) {
+      return value;
+    }
+
     var ret = saver != null ? saver(this, value) : storage.save<T>(this, value);
 
     return ret.resolveMapped<T>(_onSave);
@@ -391,6 +422,10 @@ class AsyncField<T> {
   /// See [deletedValue].
   FutureOr<bool> delete() {
     var deleter = this.deleter;
+
+    if (isClosed) {
+      return false;
+    }
 
     var ret = deleter != null ? deleter(this) : storage.delete<T>(this);
 
@@ -553,6 +588,20 @@ class AsyncStorage {
 
   /// Fetches an [asyncField] value.
   FutureOr<T> fetch<T>(AsyncField<T> asyncField) {
+    if (isClosed) {
+      var value = asyncField.value;
+      if (value != null) {
+        return value;
+      }
+
+      try {
+        return null as T;
+      } catch (_) {
+        throw StateError(
+            "Closed `storage`: can't return `null` value @ AsyncField#${asyncField.id.key}");
+      }
+    }
+
     throw AsyncFieldError(
         'No fetcher for ${asyncField.runtimeType}', asyncField.id);
   }
@@ -566,6 +615,21 @@ class AsyncStorage {
   /// Disposes an [asyncField].
   FutureOr<bool> dispose(AsyncField asyncField) {
     return _fields.remove(asyncField.id) != null;
+  }
+
+  bool _closed = false;
+
+  /// Returns `true` if this instance is closed.
+  /// - A closed storage will stop `fetch`, `save` and `delete` operations.
+  /// - See [close].
+  bool get isClosed => _closed;
+
+  /// Closes this instance.
+  /// - A closed storage will stop `fetch`, `save` and `delete` operations.
+  /// - See [isClosed]
+  void close() {
+    if (_closed) return;
+    _closed = true;
   }
 
   @override
