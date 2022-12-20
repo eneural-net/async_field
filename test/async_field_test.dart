@@ -336,7 +336,7 @@ void main() {
       expect(field.valueAsBool, isTrue);
     });
 
-    test('AsyncStorage: error', () async {
+    test('AsyncStorage (error)', () async {
       var storage = AsyncStorage();
 
       expect(storage.canFetch, isFalse);
@@ -422,6 +422,56 @@ void main() {
       expect(field.value, equals(1002));
       expect(fetches, equals([1001, 1002]));
       expect(changes, equals([1001, -100, 1002]));
+    });
+
+    test('Closed AsyncStorage (error)', () async {
+      var storage = AsyncStorage();
+
+      var counter = 1000;
+
+      var field = storage.getField<int>('a')
+        ..withFetcher((asyncField) => ++counter);
+
+      expect(field, isNotNull);
+
+      expect(field.value, isNull);
+
+      var fetches = <int>[];
+      field.onFetch.listen((field) => fetches.add(field.valueNoTimeoutCheck!));
+
+      var changes = <int>[];
+      field.onChange.listen((field) => changes.add(field.value!));
+
+      expect(fetches, isEmpty);
+      expect(changes, isEmpty);
+
+      expect(storage.isClosed, isFalse);
+      expect(field.isClosed, isFalse);
+
+      storage.close();
+
+      expect(storage.isClosed, isTrue);
+      expect(field.isClosed, isTrue);
+
+      expect(() => field.get(), throwsStateError);
+      expect(field.isSet, isFalse);
+
+      expect(fetches, isEmpty);
+      expect(changes, isEmpty);
+
+      expect(field.value, isNull);
+
+      await field.set(-100);
+
+      expect(field.value, equals(-100));
+      expect(fetches, isEmpty);
+      expect(changes, isEmpty);
+
+      expect(await field.refresh(), equals(-100));
+
+      expect(field.value, equals(-100));
+      expect(fetches, isEmpty);
+      expect(changes, isEmpty);
     });
   });
 }
