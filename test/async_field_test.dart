@@ -315,6 +315,45 @@ void main() {
       expect(events, equals([103, 104, 1001, 105]));
     });
 
+    test('AsyncField fetch delayed', () async {
+      var storage = AsyncStorage();
+      var storedValue = <int>[100];
+
+      var field = storage.getField<int>('a')
+        ..withFetcher((field) => Future(() => Future.delayed(
+            Duration(milliseconds: 100), () => ++storedValue[0])))
+        ..timeout = Duration(seconds: 2);
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+      expect(field.canRefresh, isTrue);
+      expect(field.isFetching, isFalse);
+
+      expect(await field.get(), equals(101));
+      expect(field.isSet, isTrue);
+      expect(field.value, equals(101));
+      expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
+      expect(field.valueTime, isNotNull);
+      expect(field.isExpire, isFalse);
+      expect(field.isValid, isTrue);
+      expect(field.isFetching, isFalse);
+
+      expect(await field.get(), equals(101));
+      expect(field.isFetching, isFalse);
+
+      var asyncGet1 = field.refresh();
+      var asyncGet2 = field.get();
+      var asyncGet3 = field.get();
+
+      expect(field.isFetching, isTrue);
+
+      expect(await asyncGet1, equals(102));
+      expect(await asyncGet2, equals(102));
+      expect(await asyncGet3, equals(102));
+
+      expect(field.isFetching, isFalse);
+    });
+
     test('MyAsyncStorage 1', () async {
       var storage = MyAsyncStorage();
 

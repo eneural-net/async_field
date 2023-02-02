@@ -222,6 +222,9 @@ class AsyncField<T> {
   ///
   /// A slate value is when the current value exists but is expired. Can
   /// be used before a fetch is performed.
+  ///
+  /// If [isFetching] is `true` it will return the current fetching [Future].
+  /// See [refresh].
   FutureOr<T> get({void Function(T slate)? onSlateValue}) {
     var slate = checkValueTimeout();
 
@@ -237,6 +240,16 @@ class AsyncField<T> {
       var value = refresh();
       return value;
     } else {
+      var fetching = _fetching;
+
+      if (fetching != null) {
+        if (onSlateValue != null && slate != null) {
+          onSlateValue(slate);
+        }
+
+        return fetching;
+      }
+
       return _value as T;
     }
   }
@@ -323,6 +336,8 @@ class AsyncField<T> {
   bool get canRefresh => (fetcher != null || storage.canFetch) && !isClosed;
 
   Future<T>? _fetching;
+
+  bool get isFetching => _fetching != null;
 
   /// Refreshes this field and returns the fresh value.
   FutureOr<T> refresh() {
