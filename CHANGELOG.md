@@ -1,3 +1,12 @@
+## 1.0.7
+
+- `AsyncField`:
+  - Added `isFetching`.
+  - `get`: now respect the current fetching `Future`.
+- lints: ^2.0.1
+- test: ^1.22.2
+- coverage: ^1.6.2
+
 ## 1.0.6
 
 - `AsyncStorage`:
