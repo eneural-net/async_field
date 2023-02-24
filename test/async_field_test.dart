@@ -141,6 +141,10 @@ void main() {
       var changes = <int>[];
       field.onChange.listen((field) => changes.add(field.value!));
 
+      field.onChangeFilter = (prev, val) {
+        return prev != val;
+      };
+
       var saves = <int>[];
       field.onSave.listen((field) => saves.add(field.value!));
 
@@ -190,6 +194,10 @@ void main() {
 
       expect(deletes, equals([200]));
       expect(disposes, equals([]));
+
+      expect(field.isSet, isFalse);
+      expect(field.isSlate, isFalse);
+      expect(field.isSetOrSlate, isFalse);
 
       await field.set(300);
 
@@ -247,6 +255,9 @@ void main() {
       expect(field.valueTime, isNotNull);
       expect(field.isExpire, isFalse);
       expect(field.isValid, isTrue);
+      expect(field.isSet, isTrue);
+      expect(field.isSetOrSlate, isTrue);
+      expect(field.isSlate, isFalse);
 
       expect(field.valueTimeUntilExpire > 100, isTrue);
 
@@ -260,6 +271,11 @@ void main() {
       await Future.delayed(Duration(milliseconds: 2100));
 
       expect(field.valueNoTimeoutCheck, equals(101));
+      expect(field.value, isNull);
+      expect(field.valueOrSlate, equals(101));
+      expect(field.isSet, isFalse);
+      expect(field.isSetOrSlate, isTrue);
+      expect(field.isSlate, isTrue);
 
       expect(field.valueTimeUntilExpire <= 0, isTrue);
 
@@ -298,21 +314,45 @@ void main() {
       field.set(1001);
       expect(await field.get(), equals(1001));
 
+      expect(field.isFetching, isFalse);
+
+      field.timeout = Duration(seconds: 1);
+      field.periodicRefresh = null;
+
+      await Future.delayed(Duration(milliseconds: 1100));
+
+      field.dsxValueAllowSlate = false;
+      field.dsxValueAllowAutoFetch = false;
+      expect(await field.toDSXValue(), equals(1001));
+
+      field.checkValueTimeout();
+      expect(await field.toDSXValue(), isNull);
+
+      field.dsxValueAllowSlate = true;
+      field.dsxValueAllowAutoFetch = false;
+      expect(await field.toDSXValue(), equals(1001));
+
+      field.dsxValueAllowSlate = false;
+      field.dsxValueAllowAutoFetch = true;
+      expect(await field.toDSXValue(), equals(105));
+
       field.timeout = null;
       field.periodicRefresh = null;
 
       expect(field.hasTimeout, isFalse);
       expect(field.hasPeriodicRefresh, isFalse);
 
-      expect(events, equals([103, 104, 1001]));
+      expect(events, equals([103, 104, 1001, 105]));
 
       field.disposeValue();
 
       expect(field.isSet, isFalse);
 
-      expect(await field.get(), equals(105));
+      expect(await field.get(), equals(106));
 
-      expect(events, equals([103, 104, 1001, 105]));
+      expect(events, equals([103, 104, 1001, 105, 106]));
+
+      expect(await field.toDSXValue(), equals(106));
     });
 
     test('AsyncField fetch delayed', () async {
@@ -461,6 +501,11 @@ void main() {
       expect(field.value, equals(1002));
       expect(fetches, equals([1001, 1002]));
       expect(changes, equals([1001, -100, 1002]));
+
+      storage.reopen();
+
+      expect(storage.isClosed, isFalse);
+      expect(field.isClosed, isFalse);
     });
 
     test('Closed AsyncStorage (error 1)', () async {

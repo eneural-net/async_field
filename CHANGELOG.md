@@ -2,6 +2,18 @@
 
 - `AsyncStorage`:
   - Added `reopen`.
+- `AsyncField`:
+  - Added `valueOrSlate` and `valueOrSlateNoTimeoutCheck`.
+  - Added `isSlate` and `isSetOrSlate`.
+  - Added `onChangeFilter`.
+  - Added `dsxValueAllowSlate` and `dsxValueAllowAutoFetch`.
+- `analysis_options.yaml`:
+  - Added linter rules:
+    - `avoid_dynamic_calls`.
+    - `avoid_type_to_string`.
+    - `no_runtimeType_toString`.
+    - `discarded_futures`.
+    - `no_adjacent_strings_in_list`.
 - sdk: '>=2.18.0 <3.0.0'
 - async_extension: ^1.1.0
 - test: ^1.23.1
