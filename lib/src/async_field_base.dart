@@ -71,6 +71,7 @@ class AsyncField<T> {
 
   Object get idKeyAsJson => json.encode(id.key);
 
+  bool _hasValueOrSlate = false;
   T? _value;
 
   String get valueAsJson {
@@ -83,21 +84,11 @@ class AsyncField<T> {
     return isSet ? '$_value' : (defaultValue ?? '?').toString();
   }
 
-  double get valueAsDouble {
-    checkValueTimeout();
-    return double.parse(valueAsString);
-  }
+  double get valueAsDouble => double.parse(valueAsString);
 
-  int get valueAsInt {
-    checkValueTimeout();
-    return int.parse(valueAsString);
-  }
+  int get valueAsInt => int.parse(valueAsString);
 
-  bool get valueAsBool {
-    checkValueTimeout();
-    var val = value;
-    return _parseBool(val);
-  }
+  bool get valueAsBool => _parseBool(value);
 
   static bool _parseBool(val) {
     if (val == null) {
@@ -149,8 +140,20 @@ class AsyncField<T> {
     return _value ?? defaultValue;
   }
 
+  /// Returns [value] or a slate version or the [defaultValue].
+  T? get valueOrSlate {
+    var slate = checkValueTimeout();
+    return _value ?? slate ?? defaultValue;
+  }
+
+  /// Returns [value] without [checkValueTimeout].
   T? get valueNoTimeoutCheck {
     return _value ?? defaultValue;
+  }
+
+  /// Returns [valueOrSlate] without [checkValueTimeout].
+  T? get valueOrSlateNoTimeoutCheck {
+    return _value ?? _slateValue ?? defaultValue;
   }
 
   /// Same as [valueTime], but `millisecondsSinceEpoch`.
@@ -180,29 +183,44 @@ class AsyncField<T> {
 
   /// Returns `true` if this [value] is valid, based in the [timeout] and [isSet].
   bool get isValid {
+    if (!isSet || isSlate) return false;
+
     var timeout = this.timeout;
-    return timeout != null
-        ? isSet && valueElapsedTime <= timeout.inMilliseconds
-        : isSet;
+    if (timeout != null) {
+      return valueElapsedTime <= timeout.inMilliseconds;
+    } else {
+      return true;
+    }
   }
 
   /// Returns `true` if this value is expired, based in the [timeout].
   bool get isExpire {
     var timeout = this.timeout;
-
     return timeout != null && valueElapsedTime > timeout.inMilliseconds;
   }
 
-  /// Returns `true` if this field value is set.
-  bool get isSet => _valueTime != null;
+  /// Returns `true` if this field value is set and NOT slate.
+  bool get isSet => _hasValueOrSlate && _slateValue == null;
+
+  /// Returns `true` if this field value is set OR have a slate value.
+  bool get isSetOrSlate => _hasValueOrSlate;
+
+  /// Returns `true` if this field value has only a slate version.
+  bool get isSlate => _hasValueOrSlate && _slateValue != null;
+
+  T? _slateValue;
 
   /// Checks [value] [timeout] and invalidate it if [isExpire].
   T? checkValueTimeout() {
     if (isExpire) {
-      var slate = _value;
-      _value = null;
-      _valueTime = null;
-      return slate;
+      if (_value != null) {
+        var slate = _value;
+        _slateValue = slate;
+        _value = null;
+        return slate;
+      } else {
+        return _slateValue;
+      }
     } else {
       return null;
     }
@@ -212,7 +230,10 @@ class AsyncField<T> {
   T? disposeValue() {
     var slate = _value;
     _value = null;
+    _hasValueOrSlate = false;
     _valueTime = null;
+    _slateValue = null;
+    _prevValue = null;
     return slate;
   }
 
@@ -254,36 +275,68 @@ class AsyncField<T> {
     }
   }
 
+  /// [get] as [String].
   FutureOr<String> getAsString() => get().resolveMapped((v) => '$v');
 
+  /// [get] as JSON.
   FutureOr<String> getAsJson() => get().resolveMapped(json.encode);
 
+  /// [get] as [double].
   FutureOr<double> getAsDouble() =>
       getAsString().resolveMapped((v) => double.parse(v));
 
+  /// [get] as [int].
   FutureOr<int> getAsInt() => getAsString().resolveMapped((v) => int.parse(v));
 
+  /// [get] as [bool].
   FutureOr<bool> getAsBool() =>
       getAsString().resolveMapped((v) => _parseBool(v));
 
   final StreamController<AsyncField<T>> _onChangeController =
       StreamController<AsyncField<T>>.broadcast();
 
+  /// On change [value] event.
   Stream<AsyncField<T>> get onChange => _onChangeController.stream;
+
+  /// Filters values changes before trigger [onChange].
+  bool Function(T? prevValue, T? value)? onChangeFilter;
+
+  bool _canNotifyChange(T? prevValue, T? value) {
+    final onChangeFilter = this.onChangeFilter;
+    if (onChangeFilter != null) {
+      return onChangeFilter(prevValue, value);
+    } else {
+      return true;
+    }
+  }
+
+  // Temporary holds the previous value while [set] and [_set]
+  T? _prevValue;
 
   /// Sets this field with [value].
   FutureOr<T> set(T value) {
+    _prevValue = _value ?? _slateValue;
+
     _value = value;
+    _hasValueOrSlate = true;
     _valueTime = DateTime.now().millisecondsSinceEpoch;
 
     return save();
   }
 
+  // Internal _set called by [_onSave] and [onFetch].
   AsyncField<T> _set(T value) {
-    _value = value;
-    _valueTime = DateTime.now().millisecondsSinceEpoch;
+    var prevValue = _prevValue;
 
-    _onChangeController.add(this);
+    _value = value;
+    _hasValueOrSlate = true;
+    _valueTime = DateTime.now().millisecondsSinceEpoch;
+    _slateValue = null;
+    _prevValue = null;
+
+    if (_canNotifyChange(prevValue, value)) {
+      _onChangeController.add(this);
+    }
 
     _checkPeriodicRefresh();
 
@@ -300,6 +353,7 @@ class AsyncField<T> {
         periodicRefresh.inMilliseconds - valueElapsedTime;
 
     if (timeToPeriodicRefresh <= 0) {
+      // ignore: discarded_futures
       refresh();
       return;
     }
@@ -311,6 +365,7 @@ class AsyncField<T> {
       if (valueElapsedTime < periodicRefresh.inMilliseconds) {
         _checkPeriodicRefresh();
       } else {
+        // ignore: discarded_futures
         refresh();
       }
     });
@@ -359,6 +414,8 @@ class AsyncField<T> {
             "Closed `storage`: can't return `null` value as `$T` @ $runtimeType#${id.key}");
       }
     }
+
+    _prevValue = _value ?? _slateValue;
 
     var fetcher = this.fetcher;
 
@@ -461,6 +518,9 @@ class AsyncField<T> {
       _deletedValue = _value;
 
       _value = null;
+      _slateValue = null;
+      _prevValue = null;
+      _hasValueOrSlate = false;
       _valueTime = DateTime.now().millisecondsSinceEpoch;
 
       _onDeleteController.add(this);
@@ -535,12 +595,31 @@ class AsyncField<T> {
     }
   }
 
+  /// If `true` allows slate values on [toDSXValue]. Default: `false`
+  bool dsxValueAllowSlate = false;
+
+  /// If `true` allows automatic fetch on [toDSXValue]. Default: `true`
+  bool dsxValueAllowAutoFetch = true;
+
   /// DSX dynamic interface (package `dom_builder`).
   dynamic toDSXValue() {
-    if (isSet && isValid) {
-      return valueNoTimeoutCheck;
-    } else {
+    if (isSetOrSlate) {
+      if (isValid) {
+        return valueNoTimeoutCheck;
+      } else if (dsxValueAllowSlate) {
+        return valueOrSlateNoTimeoutCheck;
+      }
+    }
+
+    if (dsxValueAllowAutoFetch) {
+      // ignore: discarded_futures
       return get();
+    } else {
+      if (dsxValueAllowSlate) {
+        return valueOrSlateNoTimeoutCheck;
+      } else {
+        return valueNoTimeoutCheck;
+      }
     }
   }
 
@@ -630,6 +709,27 @@ class AsyncStorage {
   /// Disposes an [asyncField].
   FutureOr<bool> dispose(AsyncField asyncField) {
     return _fields.remove(asyncField.id) != null;
+  }
+
+  /// Clear all [fields] calling [AsyncField.disposeValue].
+  void clear() {
+    for (var f in _fields.values) {
+      f.disposeValue();
+    }
+  }
+
+  /// Reopens this storage if [isClosed].
+  /// - If [clear] is `true` will also [clear] the fields.
+  bool reopen({bool clear = true}) {
+    if (!isClosed) return false;
+
+    if (clear) {
+      this.clear();
+    }
+
+    _closed = false;
+
+    return true;
   }
 
   bool _closed = false;
