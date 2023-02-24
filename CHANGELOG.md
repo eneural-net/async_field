@@ -1,3 +1,12 @@
+## 1.0.8
+
+- `AsyncStorage`:
+  - Added `reopen`.
+- sdk: '>=2.18.0 <3.0.0'
+- async_extension: ^1.1.0
+- test: ^1.23.1
+- coverage: ^1.6.3
+
 ## 1.0.7
 
 - `AsyncField`:

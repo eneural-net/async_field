@@ -254,22 +254,40 @@ class AsyncField<T> {
     }
   }
 
+  /// [get] as [String].
   FutureOr<String> getAsString() => get().resolveMapped((v) => '$v');
 
+  /// [get] as JSON.
   FutureOr<String> getAsJson() => get().resolveMapped(json.encode);
 
+  /// [get] as [double].
   FutureOr<double> getAsDouble() =>
       getAsString().resolveMapped((v) => double.parse(v));
 
+  /// [get] as [int].
   FutureOr<int> getAsInt() => getAsString().resolveMapped((v) => int.parse(v));
 
+  /// [get] as [bool].
   FutureOr<bool> getAsBool() =>
       getAsString().resolveMapped((v) => _parseBool(v));
 
   final StreamController<AsyncField<T>> _onChangeController =
       StreamController<AsyncField<T>>.broadcast();
 
+  /// On change [value] event.
   Stream<AsyncField<T>> get onChange => _onChangeController.stream;
+
+  /// Filters values changes before trigger [onChange].
+  bool Function(T? prevValue, T? value)? onChangeFilter;
+
+  bool _isChangingValue(T? prevValue, T? value) {
+    final changeValidator = this.onChangeFilter;
+    if (changeValidator != null) {
+      return changeValidator(prevValue, value);
+    } else {
+      return true;
+    }
+  }
 
   /// Sets this field with [value].
   FutureOr<T> set(T value) {
@@ -279,11 +297,16 @@ class AsyncField<T> {
     return save();
   }
 
+  // Internal _set called by [_onSave] and [onFetch].
   AsyncField<T> _set(T value) {
+    var prevValue = _value;
+
     _value = value;
     _valueTime = DateTime.now().millisecondsSinceEpoch;
 
-    _onChangeController.add(this);
+    if (_isChangingValue(prevValue, value)) {
+      _onChangeController.add(this);
+    }
 
     _checkPeriodicRefresh();
 
@@ -630,6 +653,27 @@ class AsyncStorage {
   /// Disposes an [asyncField].
   FutureOr<bool> dispose(AsyncField asyncField) {
     return _fields.remove(asyncField.id) != null;
+  }
+
+  /// Clear all [fields] calling [AsyncField.disposeValue].
+  void clear() {
+    for (var f in _fields.values) {
+      f.disposeValue();
+    }
+  }
+
+  /// Reopens this storage if [isClosed].
+  /// - If [clear] is `true` will also [clear] the fields.
+  bool reopen({bool clear = true}) {
+    if (!isClosed) return false;
+
+    if (clear) {
+      this.clear();
+    }
+
+    _closed = false;
+
+    return true;
   }
 
   bool _closed = false;
