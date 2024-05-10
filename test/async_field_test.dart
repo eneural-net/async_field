@@ -444,6 +444,102 @@ void main() {
       expect(field.value, isNull);
     });
 
+    test('AsyncStorage (fetch error)', () async {
+      var storage = AsyncStorage();
+
+      expect(storage.canFetch, isFalse);
+
+      var fetchCount = 0;
+
+      var field = storage.getField<String>('a').withFetcher((f) {
+        var c = ++fetchCount;
+        if (c == 1) {
+          throw StateError("Fetch Error");
+        }
+        return 'v:$c';
+      });
+
+      expect(field.canRefresh, isTrue);
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+
+      expect(
+          () async => field.get(),
+          throwsA(isA<StateError>()
+              .having((e) => e.message, 'message', equals('Fetch Error'))));
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+
+      expect(await field.get(), equals('v:2'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('v:2'));
+
+      expect(await field.get(), equals('v:2'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('v:2'));
+
+      expect(await field.refresh(), equals('v:3'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('v:3'));
+    });
+
+    test('AsyncStorage (async fetch error)', () async {
+      var storage = AsyncStorage();
+
+      expect(storage.canFetch, isFalse);
+
+      var fetchCount = 0;
+
+      var field = storage.getField<String>('a').withFetcher((f) {
+        return Future.microtask(() {
+          var c = ++fetchCount;
+          if (c == 1) {
+            throw StateError("Fetch Error");
+          }
+          return 'v:$c';
+        });
+      });
+
+      expect(field.canRefresh, isTrue);
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+
+      await expectLater(
+          () async => field.get(),
+          throwsA(isA<StateError>()
+              .having((e) => e.message, 'message', equals('Fetch Error'))));
+
+      expect(field.isSet, isFalse);
+      expect(field.value, isNull);
+
+      expect(await field.get(), equals('v:2'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('v:2'));
+
+      expect(await field.get(), equals('v:2'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('v:2'));
+
+      expect(await field.refresh(), equals('v:3'));
+
+      expect(field.isSet, isTrue);
+      expect(field.value, isNotNull);
+      expect(field.value, equals('v:3'));
+    });
+
     test('Closed AsyncStorage', () async {
       var storage = AsyncStorage();
 
