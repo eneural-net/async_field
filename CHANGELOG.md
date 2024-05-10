@@ -3,6 +3,8 @@
 - `AsyncField`:
   - `refresh`: ensure that `_fetching` is removed on error.
 
+- sdk: '>=3.0.0 <4.0.0'
+
 - collection: ^1.18.0
 - async_extension: ^1.2.12
 - lints: ^3.0.0
