@@ -422,10 +422,19 @@ class AsyncField<T> {
     var ret = fetcher != null ? fetcher(this) : storage.fetch<T>(this);
 
     if (ret is Future<T>) {
-      _fetching = ret;
-    }
+      Future<T>? fetching;
 
-    return ret.resolveMapped<T>(_onFetch);
+      _fetching = fetching = ret.catchError((e) {
+        if (identical(_fetching, fetching)) {
+          _fetching = null;
+        }
+        throw e;
+      });
+
+      return fetching.then<T>(_onFetch);
+    } else {
+      return _onFetch(ret);
+    }
   }
 
   FutureOr<T> _onFetch(T val) {
