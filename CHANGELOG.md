@@ -1,3 +1,17 @@
+## 1.1.0
+
+- `AsyncField`:
+  - `refresh`: ensure that `_fetching` is removed on error.
+
+- sdk: '>=3.0.0 <4.0.0'
+
+- collection: ^1.18.0
+- async_extension: ^1.2.12
+- lints: ^3.0.0
+- test: ^1.25.5
+- dependency_validator: ^3.2.3
+- coverage: ^1.8.0
+
 ## 1.0.8
 
 - `AsyncStorage`:
