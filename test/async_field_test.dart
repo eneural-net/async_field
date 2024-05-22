@@ -392,6 +392,34 @@ void main() {
       expect(await asyncGet3, equals(102));
 
       expect(field.isFetching, isFalse);
+
+      expect(await field.get(), equals(102));
+      await Future.delayed(Duration(milliseconds: 200));
+      expect(await field.get(), equals(102));
+
+      await Future.delayed(Duration(milliseconds: 2100));
+
+      expect(await field.get(), equals(103));
+      await Future.delayed(Duration(milliseconds: 200));
+      expect(await field.get(), equals(103));
+
+      field.timeoutChecker = (_) => false;
+
+      await Future.delayed(Duration(milliseconds: 2100));
+      expect(await field.get(), equals(103));
+
+      field.timeoutChecker = (_) => true;
+
+      expect(await field.get(), equals(104));
+      expect(await field.get(), equals(105));
+
+      field.timeoutChecker = null;
+
+      expect(await field.get(), equals(105));
+
+      await Future.delayed(Duration(milliseconds: 2100));
+      expect(await field.get(), equals(106));
+      expect(await field.get(), equals(106));
     });
 
     test('MyAsyncStorage 1', () async {
