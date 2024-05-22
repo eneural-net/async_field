@@ -167,7 +167,8 @@ class AsyncField<T> {
         : null;
   }
 
-  /// Returns the amount of time from the last value [set] or fetch.
+  /// Returns the amount of time in milliseconds from the
+  /// last value [set] or fetch.
   int get valueElapsedTime {
     var valueTime = _valueTime;
     return valueTime != null
@@ -181,11 +182,19 @@ class AsyncField<T> {
     return timeout != null ? timeout.inMilliseconds - valueElapsedTime : 0;
   }
 
-  /// Returns `true` if this [value] is valid, based in the [timeout] and [isSet].
+  /// Returns `true` if this [value] is valid, based in the [timeout]/[timeoutChecker] and [isSet].
   bool get isValid {
     if (!isSet || isSlate) return false;
 
-    var timeout = this.timeout;
+    final timeoutChecker = this.timeoutChecker;
+    if (timeoutChecker != null) {
+      var expired = timeoutChecker(this);
+      if (expired != null) {
+        return !expired;
+      }
+    }
+
+    final timeout = this.timeout;
     if (timeout != null) {
       return valueElapsedTime <= timeout.inMilliseconds;
     } else {
@@ -193,9 +202,20 @@ class AsyncField<T> {
     }
   }
 
-  /// Returns `true` if this value is expired, based in the [timeout].
-  bool get isExpire {
-    var timeout = this.timeout;
+  @Deprecated("Typo: use [isExpired]")
+  bool get isExpire => isExpired;
+
+  /// Returns `true` if this value is expired, based in the [timeout]/[timeoutChecker].
+  bool get isExpired {
+    final timeoutChecker = this.timeoutChecker;
+    if (timeoutChecker != null) {
+      var expired = timeoutChecker(this);
+      if (expired != null) {
+        return expired;
+      }
+    }
+
+    final timeout = this.timeout;
     return timeout != null && valueElapsedTime > timeout.inMilliseconds;
   }
 
@@ -210,9 +230,9 @@ class AsyncField<T> {
 
   T? _slateValue;
 
-  /// Checks [value] [timeout] and invalidate it if [isExpire].
+  /// Checks [value] [timeout] and invalidate it if [isExpired].
   T? checkValueTimeout() {
-    if (isExpire) {
+    if (isExpired) {
       if (_value != null) {
         var slate = _value;
         _slateValue = slate;
@@ -553,6 +573,11 @@ class AsyncField<T> {
       return ok;
     });
   }
+
+  /// Optional [timeout] checker. Returns `true` if [asyncField] is expired,
+  /// or `null` if the default checker should be used.
+  /// See [isExpired] and [isValid].
+  bool? Function(AsyncField asyncField)? timeoutChecker;
 
   /// The values timeout.
   Duration? timeout;

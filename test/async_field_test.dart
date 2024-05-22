@@ -253,7 +253,7 @@ void main() {
       expect(field.value, equals(101));
       expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
       expect(field.valueTime, isNotNull);
-      expect(field.isExpire, isFalse);
+      expect(field.isExpired, isFalse);
       expect(field.isValid, isTrue);
       expect(field.isSet, isTrue);
       expect(field.isSetOrSlate, isTrue);
@@ -374,7 +374,7 @@ void main() {
       expect(field.value, equals(101));
       expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
       expect(field.valueTime, isNotNull);
-      expect(field.isExpire, isFalse);
+      expect(field.isExpired, isFalse);
       expect(field.isValid, isTrue);
       expect(field.isFetching, isFalse);
 
@@ -392,6 +392,71 @@ void main() {
       expect(await asyncGet3, equals(102));
 
       expect(field.isFetching, isFalse);
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+
+      expect(await field.get(), equals(102));
+
+      await Future.delayed(Duration(milliseconds: 200));
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+      expect(await field.get(), equals(102));
+
+      await Future.delayed(Duration(milliseconds: 2100));
+
+      expect(field.isExpired, isTrue);
+      expect(field.isValid, isFalse);
+      expect(await field.get(), equals(103));
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+
+      await Future.delayed(Duration(milliseconds: 200));
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+      expect(await field.get(), equals(103));
+
+      field.timeoutChecker = (_) => false;
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+      expect(await field.get(), equals(103));
+
+      await Future.delayed(Duration(milliseconds: 2100));
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+      expect(await field.get(), equals(103));
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+
+      field.timeoutChecker = (_) => true;
+
+      expect(field.isExpired, isTrue);
+      expect(field.isValid, isFalse);
+      expect(await field.get(), equals(104));
+
+      expect(field.isExpired, isTrue);
+      expect(field.isValid, isFalse);
+      expect(await field.get(), equals(105));
+
+      field.timeoutChecker = null;
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+      expect(await field.get(), equals(105));
+
+      await Future.delayed(Duration(milliseconds: 2100));
+
+      expect(field.isExpired, isTrue);
+      expect(field.isValid, isFalse);
+      expect(await field.get(), equals(106));
+
+      expect(field.isExpired, isFalse);
+      expect(field.isValid, isTrue);
+      expect(await field.get(), equals(106));
     });
 
     test('MyAsyncStorage 1', () async {
