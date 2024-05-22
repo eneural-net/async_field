@@ -253,7 +253,7 @@ void main() {
       expect(field.value, equals(101));
       expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
       expect(field.valueTime, isNotNull);
-      expect(field.isExpire, isFalse);
+      expect(field.isExpired, isFalse);
       expect(field.isValid, isTrue);
       expect(field.isSet, isTrue);
       expect(field.isSetOrSlate, isTrue);
@@ -374,7 +374,7 @@ void main() {
       expect(field.value, equals(101));
       expect(field.valueTimeMillisecondsSinceEpoch, isNotNull);
       expect(field.valueTime, isNotNull);
-      expect(field.isExpire, isFalse);
+      expect(field.isExpired, isFalse);
       expect(field.isValid, isTrue);
       expect(field.isFetching, isFalse);
 
