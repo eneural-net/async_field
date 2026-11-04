@@ -550,7 +550,7 @@ void main() {
       expect(field.isSet, isFalse);
       expect(field.value, isNull);
 
-      expect(
+      await expectLater(
         () async => field.get(),
         throwsA(
           isA<StateError>().having(
