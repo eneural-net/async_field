@@ -606,8 +606,8 @@ class AsyncField<T> {
     return periodicRefresh != null && periodicRefresh.inMilliseconds >= 1;
   }
 
-  @override
   /// Same as [valueAsString].
+  @override
   String toString() => valueAsString;
 
   String get info {

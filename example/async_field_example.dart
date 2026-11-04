@@ -11,8 +11,8 @@ void main() async {
 
   // Get field 'btc_usd',
   var field = storage.getField<double>('btc_usd')
-    ..defaultValue = double
-        .nan // default value (before fetch).
+    // default value (before fetch):
+    ..defaultValue = double.nan
     ..withFetcher(_fetchBtcUsd) // the field fetcher.
     ..onChange.listen((field) => print('onChange> $field')); // change listener.
 
