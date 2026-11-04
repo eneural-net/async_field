@@ -6,10 +6,13 @@ import 'package:collection/collection.dart';
 typedef AsyncFieldFetcher<T> = FutureOr<T> Function(AsyncField<T> asyncField);
 
 typedef AsyncFieldSaver<T> = FutureOr<T> Function(
-    AsyncField<T> asyncField, T value);
+  AsyncField<T> asyncField,
+  T value,
+);
 
 typedef AsyncFieldDeleter<T> = FutureOr<bool> Function(
-    AsyncField<T> asyncField);
+  AsyncField<T> asyncField,
+);
 
 /// The ID of an [AsyncField].
 class AsyncFieldID {
@@ -90,7 +93,7 @@ class AsyncField<T> {
 
   bool get valueAsBool => _parseBool(value);
 
-  static bool _parseBool(val) {
+  static bool _parseBool(Object? val) {
     if (val == null) {
       return false;
     }
@@ -129,7 +132,7 @@ class AsyncField<T> {
 
   AsyncField(this.storage, this.id);
 
-  /// Returns `true` if [storage.isClosed].
+  /// Returns `true` if [storage] is closed (see [AsyncStorage.isClosed]).
   /// - A closed [storage] will stop `fetch`, `save` and `delete` operations.
   /// - If [storage] is closed this field will return `slate` values only.
   bool get isClosed => storage.isClosed;
@@ -394,8 +397,10 @@ class AsyncField<T> {
   AsyncFieldFetcher<T>? fetcher;
 
   /// Defines the [fetcher] of this field.
-  AsyncField<T> withFetcher(AsyncFieldFetcher<T>? fetcher,
-      {bool overwrite = false}) {
+  AsyncField<T> withFetcher(
+    AsyncFieldFetcher<T>? fetcher, {
+    bool overwrite = false,
+  }) {
     if (overwrite || this.fetcher == null) {
       this.fetcher = fetcher;
     }
@@ -431,7 +436,8 @@ class AsyncField<T> {
         return null as T;
       } catch (_) {
         throw StateError(
-            "Closed `storage`: can't return `null` value as `$T` @ $runtimeType#${id.key}");
+          "Closed `storage`: can't return `null` value as `$T` @ $runtimeType#${id.key}",
+        );
       }
     }
 
@@ -506,8 +512,10 @@ class AsyncField<T> {
   AsyncFieldDeleter<T>? deleter;
 
   /// Defines the [deleter] of this field.
-  AsyncField<T> withDeleter(AsyncFieldDeleter<T>? deleter,
-      {bool overwrite = false}) {
+  AsyncField<T> withDeleter(
+    AsyncFieldDeleter<T>? deleter, {
+    bool overwrite = false,
+  }) {
     if (overwrite || this.deleter == null) {
       this.deleter = deleter;
     }
@@ -574,7 +582,7 @@ class AsyncField<T> {
     });
   }
 
-  /// Optional [timeout] checker. Returns `true` if [asyncField] is expired,
+  /// Optional [timeout] checker. Returns `true` if the passed `asyncField` is expired,
   /// or `null` if the default checker should be used.
   /// See [isExpired] and [isValid].
   bool? Function(AsyncField asyncField)? timeoutChecker;
@@ -599,7 +607,6 @@ class AsyncField<T> {
   }
 
   @override
-
   /// Same as [valueAsString].
   String toString() => valueAsString;
 
@@ -609,8 +616,9 @@ class AsyncField<T> {
       storageInfo = storage.id.toString();
     }
 
-    var timeoutInfo =
-        hasTimeout ? '"timeout": ${timeout!.inMilliseconds}ms , ' : '';
+    var timeoutInfo = hasTimeout
+        ? '"timeout": ${timeout!.inMilliseconds}ms , '
+        : '';
 
     if (isSet) {
       return '{ '
@@ -659,8 +667,8 @@ class AsyncField<T> {
 
   /// DSX dynamic interface (package `dom_builder`).
   StreamSubscription<AsyncField<T>> listenDSXValue(
-          void Function(AsyncField<T> field)? onData) =>
-      onChange.listen(onData);
+    void Function(AsyncField<T> field)? onData,
+  ) => onChange.listen(onData);
 }
 
 /// A storage for [AsyncField] instances.
@@ -726,12 +734,15 @@ class AsyncStorage {
         return null as T;
       } catch (_) {
         throw StateError(
-            "Closed `storage`: can't return `null` value @ AsyncField#${asyncField.id.key}");
+          "Closed `storage`: can't return `null` value @ AsyncField#${asyncField.id.key}",
+        );
       }
     }
 
     throw AsyncFieldError(
-        'No fetcher for ${asyncField.runtimeType}', asyncField.id);
+      'No fetcher for ${asyncField.runtimeType}',
+      asyncField.id,
+    );
   }
 
   /// Saves an [asyncField] [value].
