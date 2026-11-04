@@ -1,3 +1,16 @@
+## 1.1.4
+
+- Tests (no library changes):
+  - Added `test/async_field_concurrency_test.dart`: concurrent `get()`/`refresh()` (single fetch),
+    fetch errors with concurrent callers, saver/fetcher interleavings, `onChangeFilter` previous values,
+    event ordering, deterministic slate values via `timeoutChecker`, many fields in one storage,
+    `close`/`reopen`, `dispose`/`disposeValue`/`delete` under in-flight operations and `periodicRefresh`
+    (including the immediate refresh of an already-elapsed period).
+  - Added `test/async_field_http_integration_test.dart` (VM only): an `AsyncStorage` backed by a local
+    `HttpServer` exercising fetch/save/delete, single-request concurrency, server errors and recovery,
+    slate values and a closed storage.
+  - `AsyncStorage (fetch error)`: now awaits its `throwsA` expectation.
+
 ## 1.1.3
 
 - Example and README:
