@@ -35,7 +35,7 @@ void main() async {
     ..withFetcher(_fetchBtcUsd) // the field fetcher.
     ..onChange.listen((field) => print('onChange> $field')); // change listener.
 
-  print('BTX-USD: $field');
+  print('BTC-USD: $field');
   print('field.info: ${field.info}');
 
   // Get the field value:
@@ -43,18 +43,18 @@ void main() async {
 
   print('field.get(): $btcUsd');
 
-  print('BTX-USD: $field');
+  print('BTC-USD: $field');
   print('field.info: ${field.info}');
 }
 
-/// Function that fetches the BTS-USD price.
+/// Function that fetches the BTC-USD spot price (Coinbase public API).
 Future<double> _fetchBtcUsd(AsyncField<double> field) async {
-  return _getURL('https://api.coindesk.com/v1/bpi/currentprice.json')
-          .resolveMapped((body) {
-    var json = convert.json.decode(body) as Map<String, dynamic>;
-    var rate = json['bpi']['USD']['rate_float'];
-    return double.parse('$rate');
-  });
+  return _getURL('https://api.coinbase.com/v2/prices/BTC-USD/spot')
+      .resolveMapped((body) {
+        var json = convert.json.decode(body) as Map<String, dynamic>;
+        var amount = json['data']['amount'];
+        return double.parse('$amount');
+      });
 }
 
 /// Simple HTTP get URL function.
@@ -62,24 +62,31 @@ Future<String> _getURL(String url) async {
   var uri = Uri.parse(url);
   var httpClient = HttpClient();
 
-  var response =
-  await httpClient.getUrl(uri).then((request) => request.close());
+  try {
+    var response = await httpClient
+        .getUrl(uri)
+        .then((request) => request.close());
 
-  var data = await response.transform(convert.Utf8Decoder()).toList();
-  var body = data.join();
-  return body;
+    if (response.statusCode != 200) {
+      throw HttpException('HTTP ${response.statusCode}', uri: uri);
+    }
+
+    return await response.transform(convert.utf8.decoder).join();
+  } finally {
+    httpClient.close();
+  }
 }
 ```
 
 OUTPUT:
 
 ```text
-BTX-USD: NaN
+BTC-USD: NaN
 field.info: { "id": "btc_usd" , "storage": 1 }
-field.get(): 34498.9417
-BTX-USD: 34498.9417
-field.info: { "value": 34498.9417 , "id": "btc_usd" , "valueTime": 1624846823650 , "storage": 1 }
-onChange> 34498.9417
+field.get(): 76879.455
+BTC-USD: 76879.455
+field.info: { "value": 76879.455 , "id": "btc_usd" , "valueTime": 1793767610222 , "storage": 1 }
+onChange> 76879.455
 ```
 
 ## Source
