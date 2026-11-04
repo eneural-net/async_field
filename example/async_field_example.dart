@@ -11,7 +11,8 @@ void main() async {
 
   // Get field 'btc_usd',
   var field = storage.getField<double>('btc_usd')
-    ..defaultValue = double.nan // default value (before fetch).
+    // default value (before fetch):
+    ..defaultValue = double.nan
     ..withFetcher(_fetchBtcUsd) // the field fetcher.
     ..onChange.listen((field) => print('onChange> $field')); // change listener.
 
@@ -31,10 +32,10 @@ void main() async {
 Future<double> _fetchBtcUsd(AsyncField<double> field) async {
   return _getURL('https://api.coindesk.com/v1/bpi/currentprice.json')
       .resolveMapped((body) {
-    var json = convert.json.decode(body) as Map<String, dynamic>;
-    var rate = json['bpi']['USD']['rate_float'];
-    return double.parse('$rate');
-  });
+        var json = convert.json.decode(body) as Map<String, dynamic>;
+        var rate = json['bpi']['USD']['rate_float'];
+        return double.parse('$rate');
+      });
 }
 
 /// Simple HTTP get URL function.
@@ -42,8 +43,9 @@ Future<String> _getURL(String url) async {
   var uri = Uri.parse(url);
   var httpClient = HttpClient();
 
-  var response =
-      await httpClient.getUrl(uri).then((request) => request.close());
+  var response = await httpClient
+      .getUrl(uri)
+      .then((request) => request.close());
 
   var data = await response.transform(convert.Utf8Decoder()).toList();
   var body = data.join();

@@ -1,4 +1,6 @@
 @Timeout(Duration(seconds: 20))
+library;
+
 import 'package:async_field/async_field.dart';
 import 'package:test/test.dart';
 
@@ -35,8 +37,9 @@ void main() {
 
       expect(storage.fields.map((e) => e.idKey).contains(field.idKey), isTrue);
       expect(
-          storage.fields.map((e) => e.idKeyAsJson).contains(field.idKeyAsJson),
-          isTrue);
+        storage.fields.map((e) => e.idKeyAsJson).contains(field.idKeyAsJson),
+        isTrue,
+      );
 
       expect(storage.fieldsIDs.map((e) => e.key).toList(), equals(['a']));
 
@@ -74,9 +77,13 @@ void main() {
       expect(field.valueAsBool, isTrue);
 
       expect(
-          field.info,
-          matches(RegExp(
-              r'\{ "value": 123 , "id": "a" , "valueTime": \d+ , "storage": 1 \}')));
+        field.info,
+        matches(
+          RegExp(
+            r'\{ "value": 123 , "id": "a" , "valueTime": \d+ , "storage": 1 \}',
+          ),
+        ),
+      );
 
       expect(await storage.setField('a', 456), equals(456));
       expect(field.value, equals(456));
@@ -244,9 +251,11 @@ void main() {
       expect(field.canRefresh, isTrue);
 
       expect(
-          field.info,
-          matches(
-              RegExp(r'\{ "id": "a" , "timeout": 2000ms , "storage": \d+ \}')));
+        field.info,
+        matches(
+          RegExp(r'\{ "id": "a" , "timeout": 2000ms , "storage": \d+ \}'),
+        ),
+      );
 
       expect(field.get(), equals(101));
       expect(field.isSet, isTrue);
@@ -286,9 +295,13 @@ void main() {
       expect(await field.get(), equals(102));
 
       expect(
-          field.info,
-          matches(RegExp(
-              r'\{ "value": 102 , "id": "a" , "valueTime": \d+ , "timeout": 2000ms , "storage": \d+ \}')));
+        field.info,
+        matches(
+          RegExp(
+            r'\{ "value": 102 , "id": "a" , "valueTime": \d+ , "timeout": 2000ms , "storage": \d+ \}',
+          ),
+        ),
+      );
 
       field.timeout = Duration(seconds: 10);
       field.periodicRefresh = Duration(seconds: 1);
@@ -360,8 +373,14 @@ void main() {
       var storedValue = <int>[100];
 
       var field = storage.getField<int>('a')
-        ..withFetcher((field) => Future(() => Future.delayed(
-            Duration(milliseconds: 100), () => ++storedValue[0])))
+        ..withFetcher(
+          (field) => Future(
+            () => Future.delayed(
+              Duration(milliseconds: 100),
+              () => ++storedValue[0],
+            ),
+          ),
+        )
         ..timeout = Duration(seconds: 2);
 
       expect(field.isSet, isFalse);
@@ -501,9 +520,11 @@ void main() {
 
       expect(error, TypeMatcher<AsyncFieldError>());
       expect(
-          '$error',
-          equals(
-              'AsyncFieldError{message: No fetcher for AsyncField<String>, id: AsyncFieldID{key: a}}'));
+        '$error',
+        equals(
+          'AsyncFieldError{message: No fetcher for AsyncField<String>, id: AsyncFieldID{key: a}}',
+        ),
+      );
 
       expect(field.isSet, isFalse);
       expect(field.value, isNull);
@@ -530,9 +551,15 @@ void main() {
       expect(field.value, isNull);
 
       expect(
-          () async => field.get(),
-          throwsA(isA<StateError>()
-              .having((e) => e.message, 'message', equals('Fetch Error'))));
+        () async => field.get(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            equals('Fetch Error'),
+          ),
+        ),
+      );
 
       expect(field.isSet, isFalse);
       expect(field.value, isNull);
@@ -579,9 +606,15 @@ void main() {
       expect(field.value, isNull);
 
       await expectLater(
-          () async => field.get(),
-          throwsA(isA<StateError>()
-              .having((e) => e.message, 'message', equals('Fetch Error'))));
+        () async => field.get(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            equals('Fetch Error'),
+          ),
+        ),
+      );
 
       expect(field.isSet, isFalse);
       expect(field.value, isNull);

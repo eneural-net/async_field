@@ -1,5 +1,5 @@
 /// Async Field Library
-library async_field;
+library;
 
 export 'src/async_field_base.dart';
 export 'src/async_field_extension.dart';
