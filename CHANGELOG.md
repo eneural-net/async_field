@@ -1,3 +1,11 @@
+## 1.1.3
+
+- Example and README:
+  - Replaced the retired CoinDesk endpoint (`api.coindesk.com/v1/bpi/currentprice.json`) with the
+    Coinbase public spot price API (`api.coinbase.com/v2/prices/BTC-USD/spot`).
+  - `_getURL` now checks the HTTP status and closes the `HttpClient`, so the example exits cleanly.
+  - Fixed `BTX-USD`/`BTS-USD` typos and refreshed the sample output.
+
 ## 1.1.2
 
 - `AsyncField`:
