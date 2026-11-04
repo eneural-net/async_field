@@ -1,3 +1,21 @@
+## 1.1.2
+
+- `AsyncField`:
+  - Fixed dartdoc references in `isClosed` and `timeoutChecker`.
+- Added `test/async_field_api_test.dart`: coverage for `AsyncFieldID`, values/defaults, saver/deleter/dispose,
+  slate values, `timeoutChecker`, `periodicRefresh`, `fieldsTimeout` and `clear`/`reopen`.
+- `.github/workflows/dart.yml`:
+  - `actions/checkout@v7`, `codecov/codecov-action@v7`.
+
+- sdk: ^3.13.0
+
+- collection: ^1.19.1
+- async_extension: ^1.2.23
+- lints: ^6.1.0
+- test: ^1.33.0
+- dependency_validator: ^5.1.0
+- coverage: ^1.16.0
+
 ## 1.1.1
 
 - `AsyncField`:
